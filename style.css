@@ -1003,3 +1003,16 @@ main { padding-bottom: 0 !important; }
   .pixel-ground { margin-bottom: 0; height: 120px; padding-bottom: 100px; place-items: start center; padding-top: 30px; }
   main { padding-bottom: 0 !important; }
 }
+
+/* ================= Picture background (same picture as the register page) ================= */
+.frame, main { background: transparent !important; }
+body::before {
+  content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background: url("welcome.jpg") center 65% / cover no-repeat; image-rendering: pixelated;
+}
+/* text that sits directly on the picture gets a solid label so it stays readable */
+.section-head h2 {
+  background: #fff; border: 3px solid var(--navy); box-shadow: 4px 4px 0 var(--navy);
+  border-radius: 14px; padding: 6px 14px 6px 10px;
+}
+.show-more .btn, #view-history .empty { background: #fff; }
