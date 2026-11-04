@@ -424,16 +424,17 @@ function renderPodium(ranked) {
     return;
   }
   const label = ["1st", "2nd", "3rd"];
+  const step = (i) => `<div class="step step-${i + 1}" aria-hidden="true"><b>${i + 1}</b></div>`;
   $("#podium").innerHTML = [1, 0, 2].map((i) => {
     const s = ranked[i];
-    if (!s) return `<div class="podium-card ghost r${i + 1}"><span class="place">${label[i]}</span><p>Waiting for a challenger</p></div>`;
-    return `<button class="podium-card r${i + 1}" data-player="${s.p.id}">
+    if (!s) return `<div class="slot r${i + 1}"><div class="podium-card ghost r${i + 1}"><span class="place">${label[i]}</span><p>Waiting for a challenger</p></div>${step(i)}</div>`;
+    return `<div class="slot r${i + 1}"><button class="podium-card r${i + 1}" data-player="${s.p.id}">
       <span class="place">${label[i]}</span>
       ${avatar(s.p, i === 0 ? "xl" : "lg")}
       <span class="pname">${esc(s.p.name)}</span>
       <span class="ptag">${i === 0 ? "Champion" : s.bestGame ? esc(s.bestGame.name) + " pro" : "Contender"}</span>
       <span class="pstats"><span><b>${s.wins}</b>wins</span><span><b>${pct(s.rate)}</b>win rate</span><span><b>${s.played}</b>played</span></span>
-    </button>`;
+    </button>${step(i)}</div>`;
   }).join("");
 }
 

@@ -121,8 +121,6 @@ main { min-width: 0; padding-bottom: 28px; }
 .pc4 { right: 60px; top: 120px; transform: rotate(-10deg) scale(.8); opacity: .9; }
 .big-star { position: absolute; right: 150px; top: 6px; width: 130px; height: 130px; transform: rotate(12deg); filter: drop-shadow(0 10px 18px rgba(0,0,0,.2)); }
 .spark { position: absolute; color: #fff; font-style: normal; opacity: .9; text-shadow: 0 0 10px #fff; }
-.s1 { left: 40%; top: 20px; font-size: 22px; } .s2 { right: 100px; top: 170px; font-size: 18px; }
-.s3 { left: 70%; top: 100px; font-size: 14px; } .s4 { right: 330px; top: 30px; font-size: 26px; }
 
 .tabs {
   position: absolute; left: 40px; top: 30px; z-index: 2;
@@ -909,3 +907,99 @@ body { padding: 0; }
 .game-filter::-webkit-scrollbar { display: none; }
 .game-filter .tab { flex: none; white-space: nowrap; line-height: 1.2; }
 .game-filter.at-end { -webkit-mask-image: none; mask-image: none; }
+
+/* =====================================================================
+   Header palette, used everywhere
+   navy #1d2f63 / #2c4a92 · sky #3584ea / #74bcfc · grass #46b83a / #2e8c2a
+   gold #ffc928 · orange #ff7a1a · dirt #6b4226 · cloud #eaf5ff
+   ===================================================================== */
+:root { --primary: #3584ea; --primary-dark: #1d5fc0; --primary-soft: #e2efff; --page: #eaf5ff; --navy: #1d2f63; --navy-2: #2c4a92; --ink-strong: #1d2f63; }
+body { background: #eaf5ff; }
+.frame, main { background: #eaf5ff radial-gradient(#d3e8ff 2px, transparent 2.1px) 0 0 / 24px 24px; }
+h3, .section-head h2, .day-title, dialog h2 { color: var(--navy); }
+
+/* menu */
+.topnav { background: var(--navy); border-bottom: 4px solid #46b83a; box-shadow: none; }
+.brand { color: #fff; }
+.nav-links { background: var(--navy-2); }
+.topnav .nav-btn { color: #d8e6ff; }
+.topnav .nav-btn:hover { background: #3a5bab; color: #fff; }
+.topnav .nav-btn.active { background: #ffc928; color: #3d2a00; box-shadow: 0 3px 0 #d9a400; }
+.topnav .sync-pill, .date-chip { background: var(--navy-2); color: #fff; border-color: #3a5bab; }
+.add-btn { border: 3px solid var(--navy); box-shadow: 4px 4px 0 var(--navy); }
+.add-btn:active { box-shadow: 2px 2px 0 var(--navy); }
+@media (max-width: 860px) {
+  .topnav { background: none; border: 0; }
+  .nav-links { background: var(--navy); border: 3px solid var(--navy); box-shadow: 0 8px 0 rgba(29,47,99,.25); }
+  .add-btn { box-shadow: 4px 4px 0 var(--navy); }
+}
+
+/* sticker cards: navy outline + hard shadow */
+.card, .tile, .podium-card, .game-filter, .day, dialog {
+  border: 3px solid var(--navy) !important; box-shadow: 5px 5px 0 var(--navy) !important;
+}
+.card, .day { border-radius: 16px; }
+.game-filter .tab.active, .btn-blue, .pill-btn.primary { background: var(--primary); box-shadow: 0 3px 0 var(--primary-dark); }
+.btn-ghost { border-color: var(--navy); color: var(--navy); }
+
+/* colours from the header */
+.tile.t4 { background: linear-gradient(135deg, #4596f2, #2a74e0); }
+.tile.t2 { background: linear-gradient(135deg, #5cc75a, #2e8c2a); }
+.tile.t3 { background: linear-gradient(135deg, #ffb52e, #ff7a1a); }
+.tile.t1 { background: linear-gradient(135deg, #ffd23f, #e9a800); }
+.podium-card.r1 { --podium-bg: linear-gradient(160deg, #fff1a6, #ffc94a 55%, #ffad33); }
+.podium-card.r2 { --podium-bg: linear-gradient(160deg, #e6f3ff, #a9d4ff 60%, #74bcfc); }
+.podium-card.r3 { --podium-bg: linear-gradient(160deg, #eaffdf, #b5ec9b 60%, #7fd66a); }
+.rank.r1 { background: #ffd34d; color: #5c3d00; } .rank.r2 { background: #a9d4ff; color: #163f7a; } .rank.r3 { background: #b5ec9b; color: #1d5a1f; }
+.gc.c0 { --gcb: #fff4c2; } .gc.c1 { --gcb: #e2efff; } .gc.c2 { --gcb: #e6f8dc; } .gc.c3 { --gcb: #ffe6cc; } .gc.c4 { --gcb: #e2efff; } .gc.c5 { --gcb: #fff4c2; }
+.bar i, .form .w { background: #46b83a; }
+.day-badge { background: var(--navy); box-shadow: 0 4px 0 #46b83a; }
+.dot.blue { background: #e2efff; } .dot.green { background: #e6f8dc; } .dot.pink { background: #fff4c2; }
+
+/* ---------- pixel podium: cards stand on grass-and-dirt blocks ---------- */
+.podium { gap: 18px; align-items: end; }
+.slot { display: flex; flex-direction: column; min-width: 0; }
+.slot .podium-card { min-height: 0 !important; position: relative; z-index: 1; }
+.podium-card { box-shadow: 5px 0 0 var(--navy) !important; border-bottom-width: 0 !important; border-radius: 26px 26px 0 0 !important; }
+.step {
+  position: relative; border: 3px solid var(--navy); border-top: 0; box-shadow: 5px 5px 0 var(--navy);
+  background:
+    linear-gradient(#46b83a 0 10px, #2e8c2a 10px 13px, transparent 13px),
+    repeating-linear-gradient(90deg, transparent 0 7px, rgba(0,0,0,.12) 7px 9px),
+    linear-gradient(#7a4a2a, #6b4226);
+  display: grid; place-items: center; image-rendering: pixelated;
+}
+.step::before { /* grass blades */
+  content: ""; position: absolute; left: 0; right: 0; top: -5px; height: 5px;
+  background: repeating-linear-gradient(90deg, #46b83a 0 3px, transparent 3px 7px, #5cc75a 7px 9px, transparent 9px 12px);
+}
+.step b { font: 400 1.4rem var(--arcade); color: #ffe066; text-shadow: 3px 3px 0 #3a2312; margin-top: 10px; }
+.step.step-1 { height: 74px; } .step.step-2 { height: 52px; } .step.step-3 { height: 36px; }
+.step.step-3 b { font-size: 1rem; }
+.podium-card .place { display: none; }
+
+/* ---------- pixel ground footer ---------- */
+.pixel-ground {
+  margin-top: 36px; height: 92px; position: relative; display: grid; place-items: end center; padding-bottom: 16px;
+  background:
+    linear-gradient(#46b83a 0 14px, #2e8c2a 14px 18px, transparent 18px),
+    radial-gradient(#5a3519 1.5px, transparent 1.6px) 0 22px / 14px 12px,
+    radial-gradient(#83532f 1.5px, transparent 1.6px) 7px 28px / 14px 12px,
+    #6b4226;
+}
+.pixel-ground::before {
+  content: ""; position: absolute; left: 0; right: 0; top: -6px; height: 6px;
+  background: repeating-linear-gradient(90deg, #46b83a 0 3px, transparent 3px 8px, #5cc75a 8px 10px, transparent 10px 14px);
+}
+.pixel-ground span { font: 600 .85rem var(--pixel); color: #f3dcc4; }
+main { padding-bottom: 0 !important; }
+.credits { margin-bottom: 0; }
+
+@media (max-width: 860px) {
+  .podium { gap: 8px; }
+  .podium-card { border-radius: 18px 18px 0 0 !important; }
+  .step.step-1 { height: 54px; } .step.step-2 { height: 38px; } .step.step-3 { height: 26px; }
+  .step b { font-size: 1rem; margin-top: 8px; } .step.step-3 b { font-size: .75rem; }
+  .pixel-ground { margin-bottom: 0; height: 120px; padding-bottom: 100px; place-items: start center; padding-top: 30px; }
+  main { padding-bottom: 0 !important; }
+}
