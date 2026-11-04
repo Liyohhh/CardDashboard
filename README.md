@@ -1,6 +1,6 @@
-# 🃏 Card Night Champions
+# 🍄 Card War
 
-A colourful, 8-bit themed scoreboard for card-game nights: UNO, Poker, Big Two, Blackjack, or anything else you play.
+A Super Mario Bros. (underground World 1-2) themed scoreboard for card-game nights: UNO, Poker, Big Two, Blackjack, or anything else you play.
 Record who played and who won, and the dashboard works out the champion, win rates, streaks and the best player for each game.
 
 **Live site:** https://liyohhh.github.io/CardDashboard/
@@ -9,19 +9,17 @@ Record who played and who won, and the dashboard works out the champion, win rat
 
 ## Features
 
-- **Champion card and top 3:** the current leader, the runners-up and who is on a winning streak.
-- **Win rates and stats:** wins, games played, win rate, longest streak and last-5 form for every player.
-- **Per-game view:** tap a game tab (e.g. *Poker*) to see the rankings for that game only.
-- **Champion of each game,** plus star ratings for the overall champion in every game.
+- **Top Three on pipes:** the leaders stand on green pipes of different heights, and their profile pictures bounce.
+- **Game HUD:** the top of the page shows the leader and their wins, coins × matches played, the game being filtered and today's date.
+- **Stats, ranking and game champions:** win rates, streaks, most played game, and the best player for each game.
 - **Match history:** grouped by date, with filters for game, player and date range; edit or delete any match.
-- **Quick match entry:** pick a game (or create a new one on the spot), set the date, tap who played and who won.
-- **Custom players:** each player gets a coloured profile head with their own colour and face.
-- **Shared and live:** scores are stored in Supabase, so everyone sees the same data on any device and changes appear instantly.
-- **Change log:** every add, edit and delete is recorded with the person's name and time. Only the owner can read it.
-- **Daily backups:** a snapshot of all data is saved every day and kept for 30 days.
-- **Animated 8-bit header,** pixel fonts and colourful flat icons. Works on phones, tablets and laptops.
+- **Quick match entry:** pick a game (or create one on the spot), set the date, tap who played and who won, add a new player inline.
+- **Profile pictures:** every player picks a Mario character, a colour, or uploads a photo (their character then shows as a small badge).
+- **Shared and live:** stored in Supabase, so everyone sees the same scores on any device, instantly.
+- **Change log** (owner only) and **daily backups** kept for 30 days.
+- **Animated cave:** Mario runs through, grabs coins, bumps the ? block and stomps a Goomba (still for people who prefer reduced motion).
 
-![Welcome screen](docs/welcome.png)
+![Register screen](docs/welcome.png)
 
 ## How it works
 
@@ -32,10 +30,9 @@ It's a plain static website (HTML, CSS and JavaScript, no build step) hosted on 
 |---|---|
 | `index.html`, `style.css` | Page layout and styles |
 | `app.js` | Dashboard logic: stats, history, players, games, syncing |
-| `header.js` | The animated 8-bit header |
-| `welcome-art.js` | The pixel landscape on the welcome screen (used when `welcome.jpg` is missing) |
-| `effects.js`, `vendor/` | Visual effects from canvas-ui: tap ripples, header glitch and dither |
-| `icons.js` | Icon set |
+| `cave.js` | The animated underground scene |
+| `sprites/` | Super Mario Bros. sprites |
+| `icons.js` | Game icons |
 | `config.js` | Which Supabase project the site uses |
 | `supabase-setup.sql` | Database tables, access rules, change log and backups |
 
@@ -62,13 +59,10 @@ by the database's Row Level Security rules in `supabase-setup.sql`. The change l
    If you'd rather keep the site private, leave both values empty. Visitors then see a private screen, and you share
    access with an invite link from **Manage → Sharing & sync**.
 5. **GitHub Pages:** in your repository, **Settings → Pages → Deploy from a branch → `main` / root → Save**.
-6. Optional: add a `welcome.jpg` to use your own picture on the welcome screen.
 
 ## Credits
 
-- Visual effects: [canvas-ui](https://github.com/DavidHDev/canvas-ui) by David Haz (MIT + Commons Clause). The bundled copy in
-  `vendor/` is modified so the dither and glitch effects can read the header canvas; see `vendor/canvas-ui-LICENSE.md`.
-- Icons: [Streamline](https://www.streamlinehq.com) "Core" flat icons (CC BY 4.0), recoloured.
-- Fonts: [Pixelify Sans](https://fonts.google.com/specimen/Pixelify+Sans), [Press Start 2P](https://fonts.google.com/specimen/Press+Start+2P)
-  and [Nunito](https://fonts.google.com/specimen/Nunito) (SIL Open Font License).
-- Pixel art (header, welcome landscape, playing cards) and profile heads were made for this project.
+- Super Mario Bros. sprites via [JuniorTour/es6-mario](https://github.com/JuniorTour/es6-mario). Super Mario Bros., its characters and graphics
+  are © Nintendo. This is a private, non-commercial fan project and is not affiliated with Nintendo.
+- Game icons: [Streamline](https://www.streamlinehq.com) "Core" flat icons (CC BY 4.0), recoloured.
+- Fonts: [Press Start 2P](https://fonts.google.com/specimen/Press+Start+2P) and [Darumadrop One](https://fonts.google.com/specimen/Darumadrop+One) (SIL Open Font License).

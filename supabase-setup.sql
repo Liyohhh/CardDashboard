@@ -1,4 +1,4 @@
--- Card Night Champions: database setup
+-- Card War: database setup
 -- Paste this whole file into Supabase → SQL Editor → New query → Run.
 -- It only creates new tables (players, games, matches, activity_log, app_owner); it doesn't touch anything else.
 -- Access: anyone who opens the site can view and edit the scores.

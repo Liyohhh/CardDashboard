@@ -1,7 +1,7 @@
-/* Card Night Champions — all data lives in localStorage (no server needed). */
+/* Card War: scoreboard logic. Data syncs to Supabase (see config.js); ?demo shows sample data. */
 const KEY = "card-champions-v1";
-const PALETTE = ["#ff5c8a", "#ff8a3d", "#ffb800", "#22c55e", "#14c3b0", "#1f9bff", "#5b6cff", "#a259ff", "#ff4dd2", "#00b8d9", "#8d6e63", "#3a3f4b"];
-const FACES = { smile: "Smile", happy: "Happy", wink: "Wink", cool: "Cool", sleepy: "Sleepy", none: "Plain" };
+const PALETTE = ["#e0412e", "#2f6fd0", "#4e9a3a", "#f4b81c", "#8a5bb8", "#f05a28", "#14c3b0", "#ff5c8a", "#444444"];
+const CHARS = ["mario", "luigi", "peach", "toad", "goomba", "koopa", "lakitu", "bowser", "blooper", "piranha", "spiny"];
 
 
 const uid = () => Math.random().toString(36).slice(2, 10);
@@ -14,33 +14,12 @@ const uniq = (svg) => { const n = (++icN).toString(36); return svg.replace(/id="
 const iconSvg = (name) => ICONS[name] || ICONS[ICON_ALIAS[name]] || ICONS.cards;
 const ic = (name, cls = "") => `<i class="ic ${cls}">${uniq(iconSvg(name))}</i>`;
 
-/* ---------------- Avatars: coloured profile head ---------------- */
-function tint(hex, amt = 0.8) {
-  const n = parseInt(hex.slice(1), 16);
-  const mix = (c) => Math.round(c + (255 - c) * amt);
-  return `rgb(${mix(n >> 16)},${mix((n >> 8) & 255)},${mix(n & 255)})`;
-}
-function faceSvg(face) {
-  const ink = 'fill="#2d3142"', line = 'stroke="#2d3142" stroke-width="1.6" stroke-linecap="round" fill="none"';
-  const cheeks = '<circle cx="18.2" cy="22" r="1.8" fill="#ff8fab" opacity=".7"/><circle cx="29.8" cy="22" r="1.8" fill="#ff8fab" opacity=".7"/>';
-  switch (face) {
-    case "smile": return `<circle cx="20.5" cy="18.5" r="1.4" ${ink}/><circle cx="27.5" cy="18.5" r="1.4" ${ink}/><path d="M21 22.3q3 2.6 6 0" ${line}/>${cheeks}`;
-    case "happy": return `<path d="M19 19q1.5-2 3 0M26 19q1.5-2 3 0" ${line}/><path d="M20.5 21.8q3.5 4.2 7 0z" fill="#2d3142"/>${cheeks}`;
-    case "wink": return `<circle cx="20.5" cy="18.5" r="1.4" ${ink}/><path d="M26 18.7h3" ${line}/><path d="M21 22.3q3 2.6 6 0" ${line}/>${cheeks}`;
-    case "cool": return `<rect x="17.5" y="16.5" width="5.6" height="3.6" rx="1.6" ${ink}/><rect x="24.9" y="16.5" width="5.6" height="3.6" rx="1.6" ${ink}/><path d="M23 18h2" ${line}/><path d="M22 23q2.5 1.4 5-.6" ${line}/>`;
-    case "sleepy": return `<path d="M19 18.8q1.5 1.4 3 0M26 18.8q1.5 1.4 3 0" ${line}/><circle cx="24" cy="23" r="1.2" ${ink}/>${cheeks}`;
-    default: return "";
-  }
-}
-function headSvg(color, face) {
-  return `<svg viewBox="0 0 48 48" aria-hidden="true"><rect width="48" height="48" fill="${tint(color)}"/>
-    <path d="M7 50c0-10.5 7.6-17 17-17s17 6.5 17 17z" fill="${color}"/>
-    <circle cx="24" cy="19.5" r="10" fill="${color}"/>
-    <ellipse cx="20.5" cy="14.5" rx="4" ry="2.2" fill="#fff" opacity=".25"/>
-    ${faceSvg(face)}</svg>`;
-}
-const pic = (p) => (p.photo ? `<img src="${esc(p.photo)}" alt="" />` : headSvg(p.color, p.face));
-const avatar = (p, size = "") => `<span class="avatar ${size}" style="--ring:${esc(p.color || "#fff")}">${pic(p)}</span>`;
+/* ---------------- Profile icon: Mario character (default) or photo ---------------- */
+const charOf = (p) => (CHARS.includes(p.char) ? p.char : CHARS[[...String(p.id || p.name)].reduce((a, c) => a + c.charCodeAt(0), 0) % 4]);
+const spr = (name) => `sprites/${name}.png`;
+const avatar = (p, size = "md", cls = "") => `<span class="pi pi-${size} ${cls}" style="--c:${esc(p.color || "#2f6fd0")}">` +
+  (p.photo ? `<img class="ph" src="${esc(p.photo)}" alt="" /><span class="bd"><img src="${spr(charOf(p))}" alt="" /></span>`
+           : `<img class="ch" src="${spr(charOf(p))}" alt="" />`) + `</span>`;
 
 // Shrink an uploaded image to a small square JPEG (data URL) so it fits in the database.
 function photoFromFile(file) {
@@ -99,7 +78,8 @@ function migrate(s) {
   s.players ||= []; s.games ||= []; s.matches ||= [];
   const emojiIcon = { "🃏": "card-wild", "♠️": "card-spade", "♥️": "card-heart", "♦️": "card-diamond", "♣️": "card-club", "👑": "crown", "🎲": "dices", "⭐": "star", "💎": "premium", "🔥": "meteor" };
   s.players.forEach((p, i) => {
-    if (!p.face) { p.face = "smile"; if (!PALETTE.includes(p.color)) p.color = PALETTE[i % PALETTE.length]; }
+    if (!p.face) p.face = "smile";
+    if (!/^#[0-9a-f]{6}$/i.test(p.color || "")) p.color = PALETTE[i % PALETTE.length];
     delete p.emoji;
   });
   s.games.forEach((g) => { if (!g.icon) g.icon = emojiIcon[g.emoji] || "card-wild"; delete g.emoji; });
@@ -117,7 +97,7 @@ function save() {
 // and sends only what changed (upserts + deletes).
 let sb = null;
 const TABLES = {
-  players: { to: (p) => ({ id: p.id, name: p.name, color: p.color, face: p.face, photo: p.photo || null }), from: (r) => ({ id: r.id, name: r.name, color: r.color, face: r.face, photo: r.photo || null }) },
+  players: { to: (p) => ({ id: p.id, name: p.name, color: p.color, face: p.face || "smile", photo: p.photo || null, char: p.char || null }), from: (r) => ({ id: r.id, name: r.name, color: r.color, face: r.face, photo: r.photo || null, char: r.char || null }) },
   games: { to: (g) => ({ id: g.id, name: g.name, icon: g.icon }), from: (r) => ({ id: r.id, name: r.name, icon: r.icon }) },
   matches: {
     to: (m) => ({ id: m.id, game_id: m.gameId, date: m.date, players: m.players, winner_id: m.winnerId }),
@@ -218,40 +198,35 @@ function renderCloudBox() {
 
 }
 
-/* ---------------- Lock screen / name prompt ---------------- */
+/* ---------------- Register (name prompt) / private screen ---------------- */
 function showLock(mode) {
   $("#lock").hidden = false;
   document.body.classList.add("locked");
   const body = $("#lock-body");
-  const art = () => { const cv = $("#welcome-art"); if (cv && window.drawWelcomeArt) window.drawWelcomeArt(cv); };
-  requestAnimationFrame(art);
-  if (!showLock.bound) { showLock.bound = true; window.addEventListener("resize", () => { if (!$("#lock").hidden) art(); }); }
   if (mode === "name") {
-    body.innerHTML = `
-      <div class="lock-hello"><h2>Hello Noobs!</h2><p>Here to see your worth :D! ${ic("heart", "sm")}</p></div>
-      <div class="lock-field"><label for="lock-name">Your name</label>
-        <input id="lock-name" class="pill-input" maxlength="24" placeholder="e.g. Haretz BITCH" value="${esc(editorName())}" autocomplete="nickname" /></div>
-      <p class="lock-note">Your name appears in the change log next to anything you add or edit.</p>
-      <label class="lock-check"><input type="checkbox" id="lock-fair" checked /><span></span>I promise to record every win honestly, else im a retard</label>
-      <button class="pill-btn primary" id="lock-go">Let's play ${ic("controller", "sm")}</button>`;
+    body.innerHTML = `<h1>HELLO NOOBS!</h1><div class="sub">Here to see your worth :D!</div>
+      <div class="panel"><h2>PLAYER ENTRY</h2>
+        <label class="lab" for="lock-name">ENTER YOUR NAME</label>
+        <div class="name-entry"><img class="px" src="sprites/mario.png" alt="" /><input id="lock-name" maxlength="24" placeholder="e.g. Haretz BITCH" value="${esc(editorName())}" autocomplete="nickname" /></div>
+        <p class="hint">Your name shows in the change log next to anything you add or edit.</p>
+        <label class="chk"><input type="checkbox" id="lock-fair" checked /><span class="tick"></span><span>I promise to record every win honestly, else im a retard</span></label>
+        <button class="btn gold start" id="lock-go"><img class="px" src="sprites/mario-run2.png" alt="" />PRESS START</button></div>
+      <div class="foot">© CARD WAR · SEASON 1</div>`;
     const go = () => { const n = $("#lock-name").value.trim(); if (!n) return $("#lock-name").focus(); lsSet("cnc-editor", n); location.reload(); };
     $("#lock-go").onclick = go;
     $("#lock-name").addEventListener("keydown", (e) => { if (e.key === "Enter") go(); });
     setTimeout(() => $("#lock-name").focus(), 50);
     return;
   }
-  body.innerHTML = `
-    <div class="lock-hello"><h2>Hi there! This scoreboard is private</h2><p>Open it with the invite link you were sent ${ic("cards", "sm")}</p></div>
-    <div class="lock-field"><label for="lock-invite">Invite link</label>
-      <div class="pill-row"><input id="lock-invite" class="pill-input" placeholder="Paste your invite link" autocomplete="off" />
-      <button class="pill-btn primary" id="lock-join">Join</button></div></div>
-    <div class="lock-or"><span>or, if you're the owner</span></div>
-    <div class="lock-grid">
-      <div class="lock-field"><label for="sb-url">Project URL</label><input id="sb-url" class="pill-input" placeholder="https://your-project.supabase.co" autocomplete="off" /></div>
-      <div class="lock-field"><label for="sb-key">Publishable key</label><input id="sb-key" class="pill-input" placeholder="sb_publishable_…" autocomplete="off" /></div>
-    </div>
-    <p class="lock-note">Saved only in this browser. After connecting, copy the invite link from <b>Manage</b>.</p>
-    <button class="pill-btn" id="sb-connect">Connect</button>`;
+  body.innerHTML = `<h1>PRIVATE GAME</h1><div class="sub">Open Card War with the invite link you were sent.</div>
+    <div class="panel"><h2>JOIN</h2>
+      <div class="field"><label class="lab" for="lock-invite">INVITE LINK</label><input id="lock-invite" placeholder="Paste your invite link" autocomplete="off" /></div>
+      <button class="btn gold start" id="lock-join">JOIN GAME</button>
+      <details style="margin-top:22px"><summary class="lab" style="cursor:pointer">I'M THE OWNER</summary>
+        <div class="field"><label class="lab" for="sb-url">PROJECT URL</label><input id="sb-url" placeholder="https://your-project.supabase.co" autocomplete="off" /></div>
+        <div class="field"><label class="lab" for="sb-key">PUBLISHABLE KEY</label><input id="sb-key" placeholder="sb_publishable_…" autocomplete="off" /></div>
+        <button class="btn" id="sb-connect">CONNECT</button></details></div>`;
+  body.querySelectorAll(".field input").forEach((i) => Object.assign(i.style, { width: "100%" }));
   $("#lock-join").onclick = () => {
     const m = $("#lock-invite").value.match(/join=([\w-]+)/);
     try { const { u, k } = b64d(m[1]); lsSet("cnc-sb-url", u); lsSet("cnc-sb-key", k); location.reload(); }
@@ -275,7 +250,7 @@ async function renderOwnerBox() {
       <div class="cloud-form">
         <label>Email<input id="ow-email" type="email" autocomplete="username" /></label>
         <label>Password<input id="ow-pass" type="password" autocomplete="current-password" /></label>
-        <button class="btn btn-blue" id="ow-login">Sign in</button>
+        <button class="btn gold" id="ow-login">SIGN IN</button>
       </div>`;
     $("#ow-login").onclick = async () => {
       const { error } = await sb.auth.signInWithPassword({ email: $("#ow-email").value.trim(), password: $("#ow-pass").value });
@@ -285,8 +260,8 @@ async function renderOwnerBox() {
   }
   box.innerHTML = `<p class="muted">Loading…</p>`;
   const { data, error } = await sb.from("activity_log").select("*").order("at", { ascending: false }).limit(150);
-  const head = `<div class="btn-row owner-head"><span class="name-chip">${ic("person", "sm")}${esc(session.user.email)}</span>
-    <button class="btn btn-ghost btn-sm" id="ow-refresh">Refresh</button><button class="btn btn-ghost btn-sm" id="ow-logout">Sign out</button></div>`;
+  const head = `<div class="btn-row owner-head"><span class="name-chip">${esc(session.user.email)}</span>
+    <button class="btn small ghost" id="ow-refresh">REFRESH</button><button class="btn small ghost" id="ow-logout">SIGN OUT</button></div>`;
   if (error) box.innerHTML = head + `<p class="error">${esc(error.message)}</p>`;
   else if (!data.length) box.innerHTML = head + `<p class="empty">No changes recorded yet, or this account isn't set as the owner (see the README).</p>`;
   else box.innerHTML = head + `<ul class="log">${data.map(logItem).join("")}</ul>`;
@@ -302,9 +277,9 @@ function logItem(e) {
   if (e.table_name === "players") {
     what = `player <b>${esc(row.name)}</b>`;
     if (e.action === "update" && e.old_data) {
-      const ch = ["name", "color", "face", "photo"].filter((k) => e.old_data[k] !== e.new_data[k]);
+      const ch = ["name", "color", "char", "photo"].filter((k) => e.old_data[k] !== e.new_data[k]);
       if (ch.includes("name")) what = `player <b>${esc(e.old_data.name)}</b> → <b>${esc(e.new_data.name)}</b>`;
-      else if (ch.length) what += ` (${ch.map((k) => ({ color: "colour", face: "face", photo: "picture" }[k])).join(", ")})`;
+      else if (ch.length) what += ` (${ch.map((k) => ({ color: "colour", char: "character", photo: "picture" }[k])).join(", ")})`;
     }
   } else if (e.table_name === "games") {
     what = `game <b>${esc(row.name)}</b>`;
@@ -327,9 +302,9 @@ function toast(msg) {
 
 function demoData() {
   const names = ["Ahmad", "Bella", "Chris", "Dina", "Evan", "Farah"];
-  const faces = ["cool", "happy", "smile", "wink", "sleepy", "smile"];
-  const cols = ["#1f9bff", "#ff5c8a", "#ff8a3d", "#22c55e", "#a259ff", "#14c3b0"];
-  const players = names.map((name, i) => ({ id: uid(), name, color: cols[i], face: faces[i] }));
+  const chars = ["mario", "peach", "luigi", "toad", "koopa", "lakitu"];
+  const cols = ["#2f6fd0", "#e0412e", "#4e9a3a", "#8a5bb8", "#f4b81c", "#14c3b0"];
+  const players = names.map((name, i) => ({ id: uid(), name, color: cols[i], face: "smile", char: chars[i] }));
   const games = [["UNO", "cards"], ["Poker", "card-spade"], ["Big Two", "card-heart"], ["Blackjack", "card-diamond"]].map(([name, icon]) => ({ id: uid(), name, icon }));
   const matches = [];
   const weights = [5, 4, 3, 3, 2, 2];
@@ -394,109 +369,103 @@ const gameOf = (id) => byId(state.games, id) || { name: "Deleted game", icon: "c
 function render() {
   renderTabs();
   const { ranked, matches } = computeStats(filter);
-  $("#chip-today").textContent = new Date().toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short", year: "numeric" });
+  renderHud(ranked, matches);
   renderPodium(ranked);
-  renderTiles(ranked, matches);
-  renderLeaderboard(ranked);
+  renderStats(ranked, matches);
+  renderRanking(ranked);
   renderGameChamps();
-  renderMatches($("#recent"), [...matches].reverse().slice(0, 5));
+  renderRecent([...matches].reverse().slice(0, 5));
   renderHistory();
   renderManage();
 }
 
+function renderHud(ranked, matches) {
+  const top = ranked[0], g = filter === "all" ? null : gameOf(filter);
+  $("#hud-name").textContent = top ? top.p.name.toUpperCase().slice(0, 10) : "CARD WAR";
+  $("#hud-wins").textContent = String(top ? top.wins : 0).padStart(6, "0");
+  $("#hud-coins").textContent = matches.length;
+  $("#hud-world").textContent = g ? g.name.toUpperCase().slice(0, 8) : "ALL";
+  $("#hud-day").textContent = new Date().toLocaleDateString("en", { month: "short", day: "numeric" }).toUpperCase();
+  $("#scope").textContent = g ? g.name.toUpperCase() : "ALL GAMES";
+}
+
 function renderTabs() {
   if (filter !== "all" && !byId(state.games, filter)) filter = "all";
-  const tabs = [{ id: "all", name: "All games", icon: "star" }, ...state.games];
+  const tabs = [{ id: "all", name: "All games", icon: "cards" }, ...state.games];
   const el = $("#game-tabs");
-  el.innerHTML = tabs.map((t) =>
-    `<button class="tab ${filter === t.id ? "active" : ""}" data-filter="${t.id}">${ic(t.icon)}${esc(t.name)}</button>`).join("");
-  const edge = () => el.classList.toggle("at-end", el.scrollLeft + el.clientWidth >= el.scrollWidth - 4);
-  el.onscroll = edge; requestAnimationFrame(edge);
+  el.innerHTML = tabs.map((t) => `<button class="tab ${filter === t.id ? "active" : ""}" data-filter="${t.id}">${ic(t.icon)}${esc(t.name)}</button>`).join("");
   const act = el.querySelector(".tab.active"); // scroll the row only, never the page
   if (act && (act.offsetLeft < el.scrollLeft || act.offsetLeft + act.offsetWidth > el.scrollLeft + el.clientWidth)) el.scrollLeft = act.offsetLeft - 8;
 }
 
-/* Top 3: 2nd, 1st, 3rd */
+/* Top three on pipes: 2nd, 1st, 3rd */
 function renderPodium(ranked) {
   if (!ranked.length) {
-    $("#podium").innerHTML = `<div class="podium-empty">${ic("trophy", "lg")}<div><b>No matches yet</b><p>Record your first game to crown a champion.</p></div>
-      <button class="btn btn-blue" data-action="new-match">+ Add match</button></div>`;
+    $("#podium").innerHTML = `<div class="top3-empty"><p>NO MATCHES YET.<br>PLAY A GAME TO CROWN A CHAMPION!</p><button class="qbtn" data-action="new-match"><img class="px" src="sprites/q1.png" alt="" />ADD MATCH</button></div>`;
     return;
   }
-  const label = ["1st", "2nd", "3rd"];
-  const step = (i) => `<div class="step step-${i + 1}" aria-hidden="true"><b>${i + 1}</b></div>`;
+  const h = [128, 84, 52], size = ["xl", "lg", "lg"];
   $("#podium").innerHTML = [1, 0, 2].map((i) => {
     const s = ranked[i];
-    if (!s) return `<div class="slot r${i + 1}"><div class="podium-card ghost r${i + 1}"><span class="place">${label[i]}</span><p>Waiting for a challenger</p></div>${step(i)}</div>`;
-    return `<div class="slot r${i + 1}"><button class="podium-card r${i + 1}" data-player="${s.p.id}">
-      <span class="place">${label[i]}</span>
-      ${avatar(s.p, i === 0 ? "xl" : "lg")}
-      <span class="pname">${esc(s.p.name)}</span>
-      <span class="ptag">${i === 0 ? "Champion" : s.bestGame ? esc(s.bestGame.name) + " pro" : "Contender"}</span>
-      <span class="pstats"><span><b>${s.wins}</b>wins</span><span><b>${pct(s.rate)}</b>win rate</span><span><b>${s.played}</b>played</span></span>
-    </button>${step(i)}</div>`;
+    const pipe = `<span class="pipe"><span class="t"></span><span class="b" style="height:${h[i]}px">${i + 1}</span></span>`;
+    if (!s) return `<div class="slot ghost r${i + 1}"><span class="pi pi-${size[i]}" style="--c:#222"></span><b>???</b><small>WAITING</small>${pipe}</div>`;
+    return `<button class="slot r${i + 1}" data-player="${s.p.id}">${avatar(s.p, size[i])}<b>${esc(s.p.name.toUpperCase())}</b><small>${String(s.wins).padStart(3, "0")} WINS · ${pct(s.rate)}</small>${pipe}</button>`;
   }).join("");
 }
 
-/* Highlights that the podium doesn't already show */
-function renderTiles(ranked, matches) {
+function renderStats(ranked, matches) {
   const bestRate = [...ranked].filter((s) => s.played >= 3).sort((a, b) => b.rate - a.rate || b.played - a.played)[0];
   const hot = [...ranked].filter((s) => s.streak > 0).sort((a, b) => b.streak - a.streak)[0];
   const counts = {};
   matches.forEach((m) => (counts[m.gameId] = (counts[m.gameId] || 0) + 1));
   const topG = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
   const fav = topG && byId(state.games, topG[0]);
-  const last = matches[matches.length - 1];
-  const tile = (cls, icon, label, value, sub, who) => `<div class="tile ${cls}" ${who ? `data-player="${who.p.id}"` : ""}>
-      <span class="tile-ic">${ic(icon)}</span>
-      <div class="tile-body"><span class="label">${label}</span><b class="big">${value}</b><span class="tile-sub">${sub}</span></div></div>`;
-  $("#tiles").innerHTML =
-    tile("t4", "dices", "Matches played", matches.length, last ? `last one ${relDay(last.date) || fmtDate(last.date)}` : "none yet") +
-    tile("t2", "chart", "Best win rate", bestRate ? pct(bestRate.rate) : "—", bestRate ? `${esc(bestRate.p.name)} · ${plural(bestRate.played, "game")}` : "needs 3+ games", bestRate) +
-    tile("t3", "flame", "On fire", hot ? `${hot.streak} win${hot.streak > 1 ? "s" : ""}` : "—", hot ? `${esc(hot.p.name)} · in a row` : "no streak right now", hot) +
-    tile("t1", fav ? fav.icon : "cards", "Favourite game", fav ? esc(fav.name) : "—", fav ? `${plural(topG[1], "match").replace("matchs", "matches")}` : "play a game first");
+  const days = new Set(matches.map((m) => m.date)), first = matches[0];
+  const row = (img, label, sub, val) => `<div class="st"><img class="px" src="${spr(img)}" alt="" /><span>${label}${sub ? `<i>${sub}</i>` : ""}</span><b>${val}</b></div>`;
+  $("#stats").innerHTML =
+    row("coin1", "Matches", matches.length ? `last one ${(relDay(matches[matches.length - 1].date) || fmtDate(matches[matches.length - 1].date)).toLowerCase()}` : "none yet", `× ${matches.length}`) +
+    row("q1", "Best win rate", bestRate ? `${esc(bestRate.p.name)}, ${plural(bestRate.played, "game")}` : "needs 3+ games", bestRate ? pct(bestRate.rate) : "—") +
+    row("spiny", "On fire", hot ? `${esc(hot.p.name)}, wins in a row` : "no streak right now", hot ? `× ${hot.streak}` : "—") +
+    row("flag-top", "Most played", fav ? plural(topG[1], "match").replace("matchs", "matches") : "play a game first", fav ? esc(fav.name.toUpperCase().slice(0, 9)) : "—") +
+    row("mario", "Players", "", `× ${state.players.length}`) +
+    row("used", "Game days", first ? `since ${fmtDate(first.date)}` : "", `× ${days.size}`);
 }
 
-function renderLeaderboard(ranked) {
-  $("#lb-body").innerHTML = ranked.length ? ranked.map((s, i) => `
-    <tr data-player="${s.p.id}">
-      <td><span class="rank r${Math.min(i + 1, 4)}">${i + 1}</span></td>
-      <td><div class="player-cell">${avatar(s.p, "sm")}<span>${esc(s.p.name)}</span></div></td>
-      <td class="num"><b>${s.wins}</b></td>
-      <td class="num hide-sm">${s.played}</td>
-      <td><div class="rate"><span class="bar"><i style="width:${pct(s.rate)}"></i></span><span>${pct(s.rate)}</span></div></td>
-      <td class="hide-sm">${form(s.form)}</td>
-    </tr>`).join("") : `<tr><td colspan="6" class="empty">No results yet</td></tr>`;
+function renderRanking(ranked) {
+  $("#ranking").innerHTML = ranked.length ? ranked.map((s, i) => {
+    const n = Math.round(s.rate * 10);
+    return `<div class="rk" data-player="${s.p.id}"><span class="n">${i + 1}</span>${avatar(s.p, "sm")}<span class="nm">${esc(s.p.name)}</span>
+      <span class="bar" title="${pct(s.rate)} win rate">${Array.from({ length: 10 }, (_, k) => `<u class="${k < n ? "on" : ""}"></u>`).join("")}</span><span class="w">${s.wins}W</span></div>`;
+  }).join("") : `<p class="empty">No results yet</p>`;
 }
 
 function renderGameChamps() {
   const el = $("#game-champs");
   if (!state.games.length) { el.innerHTML = `<p class="empty">Add a game in Manage</p>`; return; }
-  el.innerHTML = state.games.map((g, i) => {
+  el.innerHTML = state.games.map((g) => {
     const { ranked, matches } = computeStats(g.id);
     const c = ranked[0];
-    return `<button class="gc c${i % 6}" data-filter="${g.id}">
-      ${ic(g.icon, "md")}
-      <span class="info"><span class="gname">${esc(g.name)}</span><span class="muted">${plural(matches.length, "match").replace("matchs", "matches")}</span></span>
-      ${c ? `<span class="champ">${avatar(c.p, "xs")}<span>${esc(c.p.name)}<span class="muted"> · ${c.wins}W</span></span></span>` : `<span class="muted">No winner yet</span>`}
-    </button>`;
+    return `<button class="gc" data-filter="${g.id}">${ic(g.icon)}<span>${esc(g.name)}<small>${plural(matches.length, "match").replace("matchs", "matches")}</small></span>
+      ${c ? `<span class="champ">${avatar(c.p, "xs")}${esc(c.p.name)} <b>${c.wins}W</b></span>` : `<span class="muted">No winner yet</span>`}</button>`;
   }).join("");
 }
 
-function matchItem(m, actions) {
-  const g = gameOf(m.gameId);
-  const w = byId(state.players, m.winnerId);
-  const ps = m.players.map((id) => byId(state.players, id)).filter(Boolean);
-  return `<li class="match">
-    ${ic(g.icon, "md")}
-    <div class="info"><div class="title">${w ? esc(w.name) : "?"} won ${esc(g.name)}</div>
-      <div class="sub">${actions ? "vs " + (ps.filter((p) => p.id !== m.winnerId).map((p) => esc(p.name)).join(", ") || "—") : fmtDate(m.date) + " · " + ps.length + " players"}</div></div>
-    <div class="stack">${ps.slice(0, 5).map((p) => `<span class="${p.id === m.winnerId ? "winner" : ""}" title="${esc(p.name)}">${avatar(p, "xs")}</span>`).join("")}${ps.length > 5 ? `<span class="more">+${ps.length - 5}</span>` : ""}</div>
-    ${actions ? `<button class="icon-btn" data-edit-match="${m.id}" title="Edit">${ic("edit", "sm")}</button><button class="icon-btn del" data-del-match="${m.id}" title="Delete">${ic("delete", "sm")}</button>` : ""}
-  </li>`;
+const listNames = (ps) => (ps.length > 1 ? ps.slice(0, -1).join(", ") + " and " + ps[ps.length - 1] : ps[0] || "nobody");
+function renderRecent(ms) {
+  $("#recent").innerHTML = ms.length ? ms.map((m) => {
+    const w = byId(state.players, m.winnerId), g = gameOf(m.gameId);
+    const others = m.players.filter((id) => id !== m.winnerId).map((id) => esc(byId(state.players, id)?.name || "?"));
+    return `<div class="lg">${w ? avatar(w, "sm") : ""}<span><b>${w ? esc(w.name) : "?"}</b> beat ${listNames(others)} at ${esc(g.name)}.</span><small>${(relDay(m.date) || fmtDate(m.date)).toUpperCase()}</small></div>`;
+  }).join("") : `<p class="empty">No matches yet</p>`;
 }
-function renderMatches(el, ms) {
-  el.innerHTML = ms.length ? ms.map((m) => matchItem(m, false)).join("") : `<li class="empty">No matches yet</li>`;
+
+function matchItem(m) {
+  const g = gameOf(m.gameId), w = byId(state.players, m.winnerId);
+  const ps = m.players.map((id) => byId(state.players, id)).filter(Boolean);
+  const others = ps.filter((p) => p.id !== m.winnerId).map((p) => esc(p.name));
+  return `<div class="match">${ic(g.icon)}<span><b>${w ? esc(w.name) : "?"}</b> won ${esc(g.name)}<small>vs ${listNames(others)}</small></span>
+    <span class="stack">${ps.slice(0, 5).map((p) => avatar(p, "xs", p.id === m.winnerId ? "win" : "")).join("")}</span>
+    <button class="icon-btn" data-edit-match="${m.id}" title="Edit">${ic("edit")}</button><button class="icon-btn del" data-del-match="${m.id}" title="Delete">${ic("delete")}</button></div>`;
 }
 
 /* ---------------- History ---------------- */
@@ -522,19 +491,19 @@ function renderHistory() {
   const pw = hist.player !== "all" ? ms.filter((m) => m.winnerId === hist.player).length : null;
 
   $("#h-summary").innerHTML = `
-    <div class="hs">${ic("history", "md")}<div><b>${ms.length}</b><span>matches</span></div></div>
-    <div class="hs">${ic("calendar", "md")}<div><b>${Object.keys(days).length}</b><span>game days</span></div></div>
-    ${pw !== null ? `<div class="hs">${ic("trophy", "md")}<div><b>${pw} / ${ms.length}</b><span>won by ${esc(byId(state.players, hist.player).name)}</span></div></div>`
-      : `<div class="hs">${tp ? avatar(tp, "sm") : ic("trophy", "md")}<div><b>${tp ? esc(tp.name) : "—"}</b><span>${tp ? `most wins here (${topW[1]})` : "most wins here"}</span></div></div>`}`;
+    <div class="hs"><img class="px" src="sprites/coin1.png" alt="" /><div><b>${ms.length}</b><span>matches</span></div></div>
+    <div class="hs"><img class="px" src="sprites/used.png" alt="" /><div><b>${Object.keys(days).length}</b><span>game days</span></div></div>
+    ${pw !== null ? `<div class="hs"><img class="px" src="sprites/q1.png" alt="" /><div><b>${pw} / ${ms.length}</b><span>won by ${esc(byId(state.players, hist.player).name)}</span></div></div>`
+      : `<div class="hs">${tp ? avatar(tp, "sm") : ""}<div><b>${tp ? esc(tp.name.toUpperCase()) : "—"}</b><span>${tp ? `most wins here (${topW[1]})` : "most wins here"}</span></div></div>`}`;
 
   const allDays = Object.entries(days);
   $("#history-list").innerHTML = allDays.length ? allDays.slice(0, hist.limit).map(([d, list]) => `
     <div class="day">
-      <div class="day-head"><span class="day-badge"><b>${D(d).getDate()}</b>${D(d).toLocaleDateString(undefined, { month: "short" })}</span>
-        <div><div class="day-title">${fmtLong(d)}</div><div class="muted">${relDay(d) ? relDay(d) + " · " : ""}${list.length} match${list.length > 1 ? "es" : ""}</div></div></div>
-      <ul class="match-list">${list.map((m) => matchItem(m, true)).join("")}</ul>
-    </div>`).join("") + (allDays.length > hist.limit ? `<div class="show-more"><button class="btn btn-ghost" id="h-more">Show more days (${allDays.length - hist.limit} left)</button></div>` : "")
-    : `<div class="card"><p class="empty">No matches for these filters</p></div>`;
+      <div class="day-head"><span class="day-badge"><span><b>${D(d).getDate()}</b>${D(d).toLocaleDateString("en", { month: "short" }).toUpperCase()}</span></span>
+        <div><div class="day-title">${fmtLong(d).toUpperCase()}</div><div class="muted">${relDay(d) ? relDay(d) + " · " : ""}${plural(list.length, "match").replace("matchs", "matches")}</div></div></div>
+      ${list.map((m) => matchItem(m)).join("")}
+    </div>`).join("") + (allDays.length > hist.limit ? `<div class="show-more"><button class="btn ghost" id="h-more">SHOW MORE DAYS (${allDays.length - hist.limit} LEFT)</button></div>` : "")
+    : `<div class="box"><p class="empty">No matches for these filters</p></div>`;
   $("#h-more")?.addEventListener("click", () => { hist.limit += 10; renderHistory(); });
 }
 ["#h-game", "#h-player", "#h-from", "#h-to"].forEach((sel) => $(sel).addEventListener("change", (e) => {
@@ -546,13 +515,13 @@ $("#h-clear").addEventListener("click", () => { Object.assign(hist, { game: "all
 function renderManage() {
   $("#player-list").innerHTML = state.players.map((p) =>
     `<li>${avatar(p, "sm")}<span class="grow">${esc(p.name)}</span>
-      <button class="icon-btn" data-edit-player="${p.id}" title="Edit">${ic("edit", "sm")}</button>
-      <button class="icon-btn del" data-del-player="${p.id}" title="Remove">${ic("delete", "sm")}</button></li>`).join("") || `<li class="empty">No players yet</li>`;
+      <button class="icon-btn" data-edit-player="${p.id}" title="Edit">${ic("edit")}</button>
+      <button class="icon-btn del" data-del-player="${p.id}" title="Remove">${ic("delete")}</button></li>`).join("") || `<li class="empty">No players yet</li>`;
   $("#game-list").innerHTML = state.games.map((g) => {
     const n = state.matches.filter((m) => m.gameId === g.id).length;
-    return `<li>${ic(g.icon, "md")}<span class="grow">${esc(g.name)} <span class="muted">· ${plural(n, "match").replace("matchs", "matches")}</span></span>
-      <button class="icon-btn" data-edit-game="${g.id}" title="Edit">${ic("edit", "sm")}</button>
-      <button class="icon-btn del" data-del-game="${g.id}" title="Remove">${ic("delete", "sm")}</button></li>`;
+    return `<li>${ic(g.icon)}<span class="grow">${esc(g.name)} <span class="muted">· ${plural(n, "match").replace("matchs", "matches")}</span></span>
+      <button class="icon-btn" data-edit-game="${g.id}" title="Edit">${ic("edit")}</button>
+      <button class="icon-btn del" data-del-game="${g.id}" title="Remove">${ic("delete")}</button></li>`;
   }).join("") || `<li class="empty">No games yet</li>`;
   $("#demo-note").hidden = !state.demo;
 }
@@ -563,8 +532,8 @@ const iconGrid = (sel) => GAME_ICONS.map((k) => `<button type="button" class="ic
 
 function openPlayerEditor(id) {
   const p = id ? byId(state.players, id) : null;
-  editing = { type: "player", id, draft: p ? { ...p } : { name: "", color: PALETTE[state.players.length % PALETTE.length], face: "smile" } };
-  $("#e-title").textContent = p ? "Edit player" : "New player";
+  editing = { type: "player", id, draft: p ? { ...p, char: charOf(p) } : { name: "", color: PALETTE[state.players.length % PALETTE.length], face: "smile", char: CHARS[state.players.length % CHARS.length] } };
+  $("#e-title").textContent = p ? "EDIT PLAYER" : "NEW PLAYER";
   drawPlayerEditor();
   $("#e-error").textContent = "";
   $("#edit-modal").showModal();
@@ -573,17 +542,17 @@ function openPlayerEditor(id) {
 function drawPlayerEditor() {
   const d = editing.draft;
   $("#e-body").innerHTML = `
-    <div class="editor-preview"><span class="avatar xl">${pic(d)}</span>
+    <div class="editor-top">${avatar(d, "xl")}
       <div class="photo-actions">
-        <label class="btn btn-blue btn-sm">${d.photo ? "Change photo" : "Upload photo"}<input type="file" id="e-photo" accept="image/*" hidden /></label>
-        ${d.photo ? `<button type="button" class="btn btn-ghost btn-sm" id="e-photo-remove">Use cartoon head</button>` : ""}
+        <label class="btn small">${d.photo ? "CHANGE PHOTO" : "⬆ UPLOAD PHOTO"}<input type="file" id="e-photo" accept="image/*" hidden /></label>
+        ${d.photo ? `<button type="button" class="btn small ghost" id="e-photo-remove">USE CHARACTER</button>` : ""}
       </div></div>
-    <label>Name<input id="e-name" maxlength="24" value="${esc(d.name)}" placeholder="Player name" /></label>
-    <div class="field-label">Colour</div>
-    <div class="swatches">${PALETTE.map((c) => `<button type="button" class="swatch ${d.color === c ? "on" : ""}" style="--c:${c}" data-pick-color="${c}"></button>`).join("")}
-      <label class="swatch custom" title="Pick any colour" style="--c:${d.color}"><input type="color" id="e-color" value="${d.color}" /></label></div>
-    <div class="field-label">Face</div>
-    <div class="faces">${Object.entries(FACES).map(([k, n]) => `<button type="button" class="face-opt ${d.face === k ? "on" : ""}" data-pick-face="${k}"><span class="avatar sm">${headSvg(d.color, k)}</span>${n}</button>`).join("")}</div>`;
+    <label class="field-label" for="e-name">NAME</label><input id="e-name" maxlength="24" value="${esc(d.name)}" placeholder="Player name" />
+    <div class="field-label">CHARACTER ${d.photo ? `<span class="muted">shown as a badge on your photo</span>` : ""}</div>
+    <div class="chars">${CHARS.map((c) => `<button type="button" class="${d.char === c ? "on" : ""}" data-pick-char="${c}" title="${c}"><img src="${spr(c)}" alt="${c}" /></button>`).join("")}</div>
+    <div class="field-label">COLOUR</div>
+    <div class="swatches">${PALETTE.map((c) => `<button type="button" class="swatch ${d.color === c ? "on" : ""}" style="--c:${c}" data-pick-color="${c}" aria-label="colour ${c}"></button>`).join("")}
+      <label class="swatch custom" title="Pick any colour"><input type="color" id="e-color" value="${d.color}" /></label></div>`;
   $("#e-name").addEventListener("input", (e) => (d.name = e.target.value));
   $("#e-color").addEventListener("input", (e) => { d.color = e.target.value; drawPlayerEditor(); });
   $("#e-photo").addEventListener("change", async (e) => {
@@ -595,7 +564,7 @@ function drawPlayerEditor() {
 function openGameEditor(id) {
   const g = id ? byId(state.games, id) : null;
   editing = { type: "game", id, draft: g ? { ...g } : { name: "", icon: GAME_ICONS[state.games.length % GAME_ICONS.length] } };
-  $("#e-title").textContent = g ? "Edit game" : "New game";
+  $("#e-title").textContent = g ? "EDIT GAME" : "NEW GAME";
   drawGameEditor();
   $("#e-error").textContent = "";
   $("#edit-modal").showModal();
@@ -604,8 +573,8 @@ function drawGameEditor() {
   const d = editing.draft;
   $("#e-body").innerHTML = `
     <div class="editor-preview">${ic(d.icon, "xl")}</div>
-    <label>Game name<input id="e-name" maxlength="24" value="${esc(d.name)}" placeholder="e.g. UNO, Poker, Big Two" /></label>
-    <div class="field-label">Icon</div>
+    <label class="field-label" for="e-name">GAME NAME</label><input id="e-name" maxlength="24" value="${esc(d.name)}" placeholder="e.g. UNO, Poker, Big Two" />
+    <div class="field-label">ICON</div>
     <div class="icon-grid">${iconGrid(d.icon)}</div>`;
   $("#e-name").addEventListener("input", (e) => (d.name = e.target.value));
 }
@@ -636,19 +605,19 @@ function openProfile(pid) {
     const b = s?.byGame[g.id];
     if (!b) return "";
     const r = b.wins / b.played;
-    return `<div class="pg-row"><span>${ic(g.icon, "sm")}${esc(g.name)}</span><span class="bar"><i style="width:${pct(r)}"></i></span><span>${b.wins}/${b.played} · ${pct(r)}</span></div>`;
+    return `<div class="pg-row"><span>${ic(g.icon)}${esc(g.name)}</span><span class="bar">${Array.from({ length: 10 }, (_, k) => `<u class="${k < Math.round(r * 10) ? "on" : ""}"></u>`).join("")}</span><span>${b.wins}/${b.played} · ${pct(r)}</span></div>`;
   }).join("");
   const lastM = sortedMatches().filter((m) => m.players.includes(pid)).pop();
   $("#profile-body").innerHTML = `
-    <div class="profile-head">${avatar(p, "lg")}<div><h2>${esc(p.name)}</h2><div class="muted">Overall rank #${s ? all.indexOf(s) + 1 : "—"}${lastM ? ` · last played ${fmtDate(lastM.date)}` : ""}</div></div>
-      <button class="btn btn-ghost btn-sm" data-edit-player="${p.id}">${ic("edit", "xs")}Customise</button></div>
+    <div class="profile-head">${avatar(p, "lg")}<div><h2>${esc(p.name.toUpperCase())}</h2><div class="muted">Rank #${s ? all.indexOf(s) + 1 : "—"}${lastM ? ` · last played ${fmtDate(lastM.date)}` : ""}</div></div>
+      <button class="btn small" data-edit-player="${p.id}">CUSTOMISE</button></div>
     <div class="profile-stats">
       <div><b>${s?.wins ?? 0}</b><span>Wins</span></div><div><b>${s?.played ?? 0}</b><span>Played</span></div>
       <div><b>${s ? pct(s.rate) : "0%"}</b><span>Win rate</span></div><div><b>${s?.bestStreak ?? 0}</b><span>Best streak</span></div>
     </div>
-    <div class="field-label">Wins per game</div>
+    <div class="field-label">WINS PER GAME</div>
     ${rows || `<p class="empty">No matches yet</p>`}
-    ${s ? `<div class="field-label">Last 5</div>${form(s.form)}` : ""}`;
+    ${s ? `<div class="field-label">LAST 5</div>${form(s.form)}` : ""}`;
   $("#profile-modal").showModal();
 }
 
@@ -660,7 +629,7 @@ function openMatchModal(editId) {
     editId, gameId: m ? m.gameId : (filter !== "all" ? filter : state.games[0]?.id || "__new"),
     players: new Set(m ? m.players : []), winner: m ? m.winnerId : null, ngIcon: GAME_ICONS[state.games.length % GAME_ICONS.length],
   };
-  $("#m-title").textContent = m ? "Edit match" : "Add a match";
+  $("#m-title").textContent = m ? "EDIT MATCH" : "ADD A MATCH";
   $("#m-date").value = m ? m.date : today();
   $("#m-ng-name").value = "";
   $("#m-error").textContent = "";
@@ -669,25 +638,25 @@ function openMatchModal(editId) {
 }
 function drawMatchModal() {
   $("#m-games").innerHTML = state.games.map((g) =>
-    `<button type="button" class="gpick ${mm.gameId === g.id ? "on" : ""}" data-pick-game="${g.id}">${ic(g.icon, "md")}${esc(g.name)}</button>`).join("") +
-    `<button type="button" class="gpick add ${mm.gameId === "__new" ? "on" : ""}" data-pick-game="__new">${ic("add", "md")}New game</button>`;
+    `<button type="button" class="gpick ${mm.gameId === g.id ? "on" : ""}" data-pick-game="${g.id}">${ic(g.icon)}${esc(g.name)}</button>`).join("") +
+    `<button type="button" class="gpick add ${mm.gameId === "__new" ? "on" : ""}" data-pick-game="__new">${ic("add")}New game</button>`;
   $("#m-newgame").hidden = mm.gameId !== "__new";
   $("#m-ng-icons").innerHTML = iconGrid(mm.ngIcon);
   $("#m-players").innerHTML = state.players.map((p) =>
-    `<button type="button" class="pick ${mm.players.has(p.id) ? "on" : ""}" data-pick="${p.id}">${avatar(p, "sm")}${esc(p.name)}</button>`).join("") +
-    `<span class="pick add-player"><span class="plus">+</span><input id="m-np" maxlength="24" placeholder="New player" aria-label="New player name" /><button type="button" class="btn btn-blue btn-sm" id="m-np-add">Add</button></span>`;
+    `<button type="button" class="pick ${mm.players.has(p.id) ? "on" : ""}" data-pick="${p.id}">${avatar(p, "xs")}${esc(p.name)}</button>`).join("") +
+    `<span class="pick add-player"><span class="plus">+</span><input id="m-np" maxlength="24" placeholder="New player" aria-label="New player name" /><button type="button" class="btn small" id="m-np-add">ADD</button></span>`;
   const addNew = () => {
     const name = $("#m-np").value.trim(); if (!name) return $("#m-np").focus();
     const existing = state.players.find((x) => x.name.toLowerCase() === name.toLowerCase());
     let id = existing && existing.id;
-    if (!id) { if (state.demo) { clearDemoIfNeeded(); mm.players.clear(); mm.winner = null; } id = uid(); state.players.push({ id, name, color: PALETTE[state.players.length % PALETTE.length], face: "smile", photo: null }); save(); }
+    if (!id) { if (state.demo) { clearDemoIfNeeded(); mm.players.clear(); mm.winner = null; } id = uid(); state.players.push({ id, name, color: PALETTE[state.players.length % PALETTE.length], face: "smile", photo: null, char: CHARS[state.players.length % CHARS.length] }); save(); }
     mm.players.add(id); drawMatchModal(); $("#m-error").textContent = "";
   };
   $("#m-np-add").onclick = addNew;
   $("#m-np").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); addNew(); } });
   const ps = state.players.filter((p) => mm.players.has(p.id));
   $("#m-winner").innerHTML = ps.length ? ps.map((p) =>
-    `<button type="button" class="pick win ${mm.winner === p.id ? "on" : ""}" data-win="${p.id}">${avatar(p, "sm")}${esc(p.name)}${mm.winner === p.id ? ic("crown", "xs") : ""}</button>`).join("")
+    `<button type="button" class="pick win ${mm.winner === p.id ? "on" : ""}" data-win="${p.id}">${avatar(p, "xs")}${esc(p.name)}${mm.winner === p.id ? `<img class="px" src="sprites/coin1.png" alt="" style="width:16px" />` : ""}</button>`).join("")
     : `<span class="muted">Select players first</span>`;
 }
 $("#match-form").addEventListener("submit", (e) => {
@@ -716,7 +685,8 @@ $("#match-form").addEventListener("submit", (e) => {
 function showView(v) {
   document.querySelectorAll(".view").forEach((el) => el.classList.toggle("active", el.id === "view-" + v));
   document.querySelectorAll(".nav-btn").forEach((b) => b.classList.toggle("active", b.dataset.view === v));
-  window.scrollTo({ top: 0, behavior: "smooth" });
+  const nav = document.querySelector(".menu");
+  if (nav.getBoundingClientRect().top <= 0) window.scrollTo({ top: nav.offsetTop - 4, behavior: "smooth" });
 }
 function clearDemoIfNeeded() {
   if (state.demo) state = { players: [], games: state.games, matches: [] };
@@ -731,14 +701,14 @@ document.addEventListener("click", (e) => {
   else if (d.action === "new-match") openMatchModal();
   else if (d.action === "new-player") openPlayerEditor();
   else if (d.action === "new-game") openGameEditor();
-  else if (d.filter) { filter = d.filter; render(); if (t.classList.contains("gc")) window.scrollTo({ top: 0, behavior: "smooth" }); }
+  else if (d.filter) { filter = d.filter; render(); if (t.classList.contains("gc")) $("#game-tabs").scrollIntoView({ behavior: "smooth", block: "start" }); }
   else if (d.pickGame) { mm.gameId = d.pickGame; drawMatchModal(); if (d.pickGame === "__new") $("#m-ng-name").focus(); }
   else if (d.pickIcon) {
     if ($("#edit-modal").open && editing?.type === "game") { editing.draft.icon = d.pickIcon; drawGameEditor(); }
     else { mm.ngIcon = d.pickIcon; drawMatchModal(); }
   }
   else if (d.pickColor) { editing.draft.color = d.pickColor; drawPlayerEditor(); }
-  else if (d.pickFace) { editing.draft.face = d.pickFace; drawPlayerEditor(); }
+  else if (d.pickChar) { editing.draft.char = d.pickChar; drawPlayerEditor(); }
   else if (d.pick) { mm.players.has(d.pick) ? mm.players.delete(d.pick) : mm.players.add(d.pick); if (!mm.players.has(mm.winner)) mm.winner = null; drawMatchModal(); }
   else if (d.win) { mm.winner = d.win; drawMatchModal(); }
   else if (d.editMatch) openMatchModal(d.editMatch);
@@ -765,7 +735,7 @@ document.addEventListener("click", (e) => {
 
 $("#export-btn").addEventListener("click", () => {
   const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
-  const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(blob), download: `card-champions-${today()}.json` });
+  const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(blob), download: `card-war-${today()}.json` });
   a.click(); URL.revokeObjectURL(a.href);
 });
 $("#import-file").addEventListener("change", async (e) => {
@@ -774,7 +744,7 @@ $("#import-file").addEventListener("change", async (e) => {
     const data = JSON.parse(await f.text());
     if (!Array.isArray(data.players) || !Array.isArray(data.matches)) throw 0;
     state = migrate(data); save(); alert("Imported!");
-  } catch { alert("That file doesn't look like a Card Champions backup."); }
+  } catch { alert("That file doesn't look like a Card War backup."); }
   e.target.value = "";
 });
 $("#reset-btn").addEventListener("click", () => {
@@ -787,3 +757,5 @@ $("#clear-demo").addEventListener("click", () => {
 document.querySelectorAll("[data-ic]").forEach((el) => (el.innerHTML = uniq(iconSvg(el.dataset.ic))));
 render();
 initCloud().then(renderOwnerBox);
+// menu gets a bottom line once it sticks to the top
+addEventListener("scroll", () => { const n = document.querySelector(".menu"); n.classList.toggle("stuck", n.getBoundingClientRect().top <= 0); }, { passive: true });
