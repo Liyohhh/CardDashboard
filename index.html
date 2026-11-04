@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Card Night Champions</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400..700&family=Press+Start+2P&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="frame">
+    <!-- ============ Sidebar ============ -->
+
+    <main>
+      <!-- ============ Header ============ -->
+      <header class="hero">
+        <canvas id="hero-art" aria-hidden="true"></canvas>
+      </header>
+      <nav class="topnav" aria-label="Main">
+        <span class="brand"><i class="ic" data-ic="cards"></i><span>Card Night</span></span>
+        <div class="nav-links">
+          <button class="nav-btn active" data-view="dashboard"><i class="ic" data-ic="home"></i><span>Home</span></button>
+          <button class="nav-btn" data-view="history"><i class="ic" data-ic="history"></i><span>History</span></button>
+          <button class="nav-btn" data-view="manage"><i class="ic" data-ic="settings"></i><span>Manage</span></button>
+        </div>
+        <div class="nav-right">
+          <span class="date-chip"><i class="ic" data-ic="calendar"></i><b id="chip-today">—</b></span>
+          <button class="sync-pill" id="sync-pill" data-view="manage" title="Sync status"></button>
+          <button class="add-btn" data-action="new-match" aria-label="Add match"><b class="plus" aria-hidden="true">+</b><span>Add match</span></button>
+        </div>
+      </nav>
+
+      <!-- ============ HOME ============ -->
+      <section id="view-dashboard" class="view active">
+        <div class="tabs game-filter" id="game-tabs" aria-label="Filter by game"></div>
+        <div class="section-head"><h2><i class="ic" data-ic="trophy"></i>Top players</h2></div>
+        <div class="podium" id="podium"></div>
+
+        <div class="tiles" id="tiles"></div>
+
+        <div class="dash-grid">
+          <div class="card">
+            <h3><span class="dot blue"><i class="ic" data-ic="podium"></i></span>Leaderboard</h3>
+            <div class="table-wrap">
+              <table class="leaderboard">
+                <thead><tr><th>#</th><th>Player</th><th class="num">Wins</th><th class="num hide-sm">Played</th><th>Win rate</th><th class="hide-sm">Last 5</th></tr></thead>
+                <tbody id="lb-body"></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="side-stack">
+            <div class="card">
+              <h3><span class="dot pink"><i class="ic" data-ic="crown"></i></span>Game champions</h3>
+              <div id="game-champs" class="game-champs"></div>
+            </div>
+            <div class="card">
+              <div class="card-head"><h3><span class="dot green"><i class="ic" data-ic="clock"></i></span>Recent matches</h3><button class="btn btn-ghost btn-sm" data-view="history">See all ›</button></div>
+              <ul id="recent" class="match-list"></ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ HISTORY ============ -->
+      <section id="view-history" class="view pad-top">
+        <div class="card">
+          <div class="card-head">
+            <h3><span class="dot green"><i class="ic" data-ic="history"></i></span>Match history</h3>
+            <button class="btn btn-blue" data-action="new-match">＋ Record a match</button>
+          </div>
+          <div class="filters">
+            <label><span><i class="ic" data-ic="dices"></i>Game</span><select id="h-game"></select></label>
+            <label><span><i class="ic" data-ic="person"></i>Player</span><select id="h-player"></select></label>
+            <label><span><i class="ic" data-ic="calendar"></i>From</span><input type="date" id="h-from" /></label>
+            <label><span><i class="ic" data-ic="cal-clock"></i>To</span><input type="date" id="h-to" /></label>
+            <button class="btn btn-ghost" id="h-clear">Clear</button>
+          </div>
+          <div class="h-summary" id="h-summary"></div>
+        </div>
+        <div id="history-list"></div>
+      </section>
+
+      <!-- ============ MANAGE ============ -->
+      <section id="view-manage" class="view pad-top">
+        <div class="demo-note" id="demo-note">
+          👋 You're looking at <b>demo data</b>. Adding your first player clears the demo players, or
+          <button class="btn btn-small" id="clear-demo">clear demo now</button>
+        </div>
+        <div class="row-2 even">
+          <div class="card">
+            <div class="card-head"><h3><span class="dot blue"><i class="ic" data-ic="people"></i></span>Players</h3><button class="btn btn-blue" data-action="new-player">＋ Add player</button></div>
+            <ul id="player-list" class="chip-list"></ul>
+          </div>
+          <div class="card">
+            <div class="card-head"><h3><span class="dot pink"><i class="ic" data-ic="dices"></i></span>Games</h3><button class="btn btn-blue" data-action="new-game">＋ Add game</button></div>
+            <ul id="game-list" class="chip-list"></ul>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><h3><span class="dot pink"><i class="ic" data-ic="history"></i></span>Change log <span class="muted">(owner only)</span></h3>
+            <span class="name-line">You appear as <b id="me-name">Someone</b> <button class="btn btn-ghost btn-sm" id="me-change">Change name</button></span></div>
+          <div id="owner-box"></div>
+        </div>
+        <div class="card">
+          <h3><span class="dot green"><i class="ic" data-ic="save"></i></span>Backup</h3>
+          <p class="muted" id="backup-note">Export a copy of all players, games and matches as a file, or load one back.</p>
+          <div class="btn-row">
+            <button class="btn btn-blue" id="export-btn">⬇ Export JSON</button>
+            <label class="btn btn-ghost">⬆ Import JSON<input type="file" id="import-file" accept="application/json" hidden /></label>
+            <button class="btn btn-danger" id="reset-btn">Clear everything</button>
+          </div>
+        </div>
+        <p class="credits">Icons: <a href="https://www.streamlinehq.com" target="_blank" rel="noopener">Streamline</a> (CC BY 4.0).</p>
+      </section>
+    </main>
+  </div>
+
+  <!-- Match modal -->
+  <dialog id="match-modal">
+    <form id="match-form" method="dialog">
+      <h2 id="m-title">Record a match</h2>
+      <div class="field-label">Game</div>
+      <div id="m-games" class="game-pick"></div>
+      <div id="m-newgame" class="newgame" hidden>
+        <input id="m-ng-name" placeholder="New game name (e.g. Uno, Poker)" maxlength="24" />
+        <div class="icon-grid" id="m-ng-icons"></div>
+      </div>
+      <label class="date-label">Date<input type="date" id="m-date" required /></label>
+      <div class="field-label">Who played? <span class="muted">(tap to select)</span></div>
+      <div id="m-players" class="pick-grid"></div>
+      <div class="field-label">Who won?</div>
+      <div id="m-winner" class="pick-grid"></div>
+      <p id="m-error" class="error"></p>
+      <div class="btn-row end sticky">
+        <button type="button" class="btn btn-ghost" data-close>Cancel</button>
+        <button type="submit" class="btn btn-blue" value="save">Save match</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Player / game editor -->
+  <dialog id="edit-modal">
+    <form id="edit-form" method="dialog">
+      <h2 id="e-title">Player</h2>
+      <div id="e-body"></div>
+      <p id="e-error" class="error"></p>
+      <div class="btn-row end sticky">
+        <button type="button" class="btn btn-ghost" data-close>Cancel</button>
+        <button type="submit" class="btn btn-blue" value="save">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Player profile modal -->
+  <dialog id="profile-modal">
+    <div id="profile-body"></div>
+    <div class="btn-row end"><button type="button" class="btn btn-ghost" data-close>Close</button></div>
+  </dialog>
+
+  <!-- Welcome / lock screen -->
+  <div id="lock" class="lock" hidden>
+    <div class="lock-art">
+      <canvas id="welcome-art" aria-hidden="true"></canvas>
+      <img id="welcome-photo" src="welcome.jpg" alt="" aria-hidden="true" onerror="this.remove()" />
+      <svg class="lock-wave" viewBox="0 0 40 100" preserveAspectRatio="none" aria-hidden="true">
+        <path d="M40 0H22v6h-4v6h-3v8h-2v10h2v8h4v6h3v8h3v8h-3v8h-4v6h-3v10h3v8h4v8h3V100H40z" />
+      </svg>
+    </div>
+    <div class="lock-panel">
+      <div class="lock-logo"><i class="ic" data-ic="cards"></i><span>Card Night Champions</span></div>
+      <div class="lock-inner" id="lock-body"></div>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+  <script src="icons.js"></script>
+  <script src="app.js"></script>
+  <script src="header.js"></script>
+  <script src="welcome-art.js"></script>
+  <script type="module" src="effects.js"></script>
+</body>
+</html>
