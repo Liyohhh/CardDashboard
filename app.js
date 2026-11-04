@@ -39,7 +39,24 @@ function headSvg(color, face) {
     <ellipse cx="20.5" cy="14.5" rx="4" ry="2.2" fill="#fff" opacity=".25"/>
     ${faceSvg(face)}</svg>`;
 }
-const avatar = (p, size = "") => `<span class="avatar ${size}">${headSvg(p.color, p.face)}</span>`;
+const pic = (p) => (p.photo ? `<img src="${esc(p.photo)}" alt="" />` : headSvg(p.color, p.face));
+const avatar = (p, size = "") => `<span class="avatar ${size}" style="--ring:${esc(p.color || "#fff")}">${pic(p)}</span>`;
+
+// Shrink an uploaded image to a small square JPEG (data URL) so it fits in the database.
+function photoFromFile(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const S = 160, c = document.createElement("canvas"); c.width = c.height = S;
+      const k = Math.min(img.width, img.height), sx = (img.width - k) / 2, sy = (img.height - k) / 2;
+      c.getContext("2d").drawImage(img, sx, sy, k, k, 0, 0, S, S);
+      URL.revokeObjectURL(img.src);
+      resolve(c.toDataURL("image/jpeg", 0.82));
+    };
+    img.onerror = () => reject(new Error("That file isn't an image we can read."));
+    img.src = URL.createObjectURL(file);
+  });
+}
 
 /* ---------------- Cloud config (Supabase) ---------------- */
 const lsGet = (k) => { try { return localStorage.getItem(k) || ""; } catch (e) { return ""; } };
@@ -100,7 +117,7 @@ function save() {
 // and sends only what changed (upserts + deletes).
 let sb = null;
 const TABLES = {
-  players: { to: (p) => ({ id: p.id, name: p.name, color: p.color, face: p.face }), from: (r) => ({ id: r.id, name: r.name, color: r.color, face: r.face }) },
+  players: { to: (p) => ({ id: p.id, name: p.name, color: p.color, face: p.face, photo: p.photo || null }), from: (r) => ({ id: r.id, name: r.name, color: r.color, face: r.face, photo: r.photo || null }) },
   games: { to: (g) => ({ id: g.id, name: g.name, icon: g.icon }), from: (r) => ({ id: r.id, name: r.name, icon: r.icon }) },
   matches: {
     to: (m) => ({ id: m.id, game_id: m.gameId, date: m.date, players: m.players, winner_id: m.winnerId }),
@@ -285,15 +302,15 @@ function logItem(e) {
   if (e.table_name === "players") {
     what = `player <b>${esc(row.name)}</b>`;
     if (e.action === "update" && e.old_data) {
-      const ch = ["name", "color", "face"].filter((k) => e.old_data[k] !== e.new_data[k]);
+      const ch = ["name", "color", "face", "photo"].filter((k) => e.old_data[k] !== e.new_data[k]);
       if (ch.includes("name")) what = `player <b>${esc(e.old_data.name)}</b> → <b>${esc(e.new_data.name)}</b>`;
-      else if (ch.length) what += ` (${ch.map((k) => ({ color: "colour", face: "face" }[k])).join(", ")})`;
+      else if (ch.length) what += ` (${ch.map((k) => ({ color: "colour", face: "face", photo: "picture" }[k])).join(", ")})`;
     }
   } else if (e.table_name === "games") {
     what = `game <b>${esc(row.name)}</b>`;
     if (e.action === "update" && e.old_data?.name !== e.new_data?.name) what = `game <b>${esc(e.old_data.name)}</b> → <b>${esc(e.new_data.name)}</b>`;
   } else if (e.table_name === "matches") {
-    what = `match: <b>${esc(pName(row.winner_id))}</b> won ${esc(gName(row.game_id))} on ${fmtDate(row.date)} (${(row.players || []).length} players)`;
+    what = `match: <b>${esc(pName(row.winner_id))}</b> won ${esc(gName(row.game_id))} on ${fmtDate(row.date)} (${plural((row.players || []).length, "player")})`;
   }
   const when = new Date(e.at).toLocaleString(undefined, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
   let who = e.editor || "Someone"; try { who = decodeURIComponent(who); } catch (x) {}
@@ -365,6 +382,7 @@ function computeStats(gameId = "all") {
 }
 
 /* ---------------- Render helpers ---------------- */
+const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
 const pct = (r) => Math.round(r * 100) + "%";
 const D = (d) => new Date(d + "T00:00");
 const fmtDate = (d) => D(d).toLocaleDateString(undefined, { day: "numeric", month: "short" });
@@ -389,15 +407,20 @@ function render() {
 function renderTabs() {
   if (filter !== "all" && !byId(state.games, filter)) filter = "all";
   const tabs = [{ id: "all", name: "All games", icon: "star" }, ...state.games];
-  $("#game-tabs").innerHTML = tabs.map((t) =>
+  const el = $("#game-tabs");
+  el.innerHTML = tabs.map((t) =>
     `<button class="tab ${filter === t.id ? "active" : ""}" data-filter="${t.id}">${ic(t.icon)}${esc(t.name)}</button>`).join("");
+  const edge = () => el.classList.toggle("at-end", el.scrollLeft + el.clientWidth >= el.scrollWidth - 4);
+  el.onscroll = edge; requestAnimationFrame(edge);
+  const act = el.querySelector(".tab.active"); // scroll the row only, never the page
+  if (act && (act.offsetLeft < el.scrollLeft || act.offsetLeft + act.offsetWidth > el.scrollLeft + el.clientWidth)) el.scrollLeft = act.offsetLeft - 8;
 }
 
 /* Top 3: 2nd, 1st, 3rd */
 function renderPodium(ranked) {
   if (!ranked.length) {
     $("#podium").innerHTML = `<div class="podium-empty">${ic("trophy", "lg")}<div><b>No matches yet</b><p>Record your first game to crown a champion.</p></div>
-      <button class="btn btn-blue" data-action="new-match">＋ Record a match</button></div>`;
+      <button class="btn btn-blue" data-action="new-match">+ Add match</button></div>`;
     return;
   }
   const label = ["1st", "2nd", "3rd"];
@@ -428,9 +451,9 @@ function renderTiles(ranked, matches) {
       <div class="tile-body"><span class="label">${label}</span><b class="big">${value}</b><span class="tile-sub">${sub}</span></div></div>`;
   $("#tiles").innerHTML =
     tile("t4", "dices", "Matches played", matches.length, last ? `last one ${relDay(last.date) || fmtDate(last.date)}` : "none yet") +
-    tile("t2", "chart", "Best win rate", bestRate ? pct(bestRate.rate) : "—", bestRate ? `${esc(bestRate.p.name)} · ${bestRate.played} games` : "needs 3+ games", bestRate) +
-    tile("t3", "flame", "On fire", hot ? `${hot.streak} in a row` : "—", hot ? esc(hot.p.name) : "no streak right now", hot) +
-    tile("t1", fav ? fav.icon : "cards", "Favourite game", fav ? esc(fav.name) : "—", fav ? `${topG[1]} matches` : "play a game first");
+    tile("t2", "chart", "Best win rate", bestRate ? pct(bestRate.rate) : "—", bestRate ? `${esc(bestRate.p.name)} · ${plural(bestRate.played, "game")}` : "needs 3+ games", bestRate) +
+    tile("t3", "flame", "On fire", hot ? `${hot.streak} win${hot.streak > 1 ? "s" : ""}` : "—", hot ? `${esc(hot.p.name)} · in a row` : "no streak right now", hot) +
+    tile("t1", fav ? fav.icon : "cards", "Favourite game", fav ? esc(fav.name) : "—", fav ? `${plural(topG[1], "match").replace("matchs", "matches")}` : "play a game first");
 }
 
 function renderLeaderboard(ranked) {
@@ -453,7 +476,7 @@ function renderGameChamps() {
     const c = ranked[0];
     return `<button class="gc c${i % 6}" data-filter="${g.id}">
       ${ic(g.icon, "md")}
-      <span class="info"><span class="gname">${esc(g.name)}</span><span class="muted">${matches.length} matches</span></span>
+      <span class="info"><span class="gname">${esc(g.name)}</span><span class="muted">${plural(matches.length, "match").replace("matchs", "matches")}</span></span>
       ${c ? `<span class="champ">${avatar(c.p, "xs")}<span>${esc(c.p.name)}<span class="muted"> · ${c.wins}W</span></span></span>` : `<span class="muted">No winner yet</span>`}
     </button>`;
   }).join("");
@@ -526,7 +549,7 @@ function renderManage() {
       <button class="icon-btn del" data-del-player="${p.id}" title="Remove">${ic("delete", "sm")}</button></li>`).join("") || `<li class="empty">No players yet</li>`;
   $("#game-list").innerHTML = state.games.map((g) => {
     const n = state.matches.filter((m) => m.gameId === g.id).length;
-    return `<li>${ic(g.icon, "md")}<span class="grow">${esc(g.name)} <span class="muted">· ${n} matches</span></span>
+    return `<li>${ic(g.icon, "md")}<span class="grow">${esc(g.name)} <span class="muted">· ${plural(n, "match").replace("matchs", "matches")}</span></span>
       <button class="icon-btn" data-edit-game="${g.id}" title="Edit">${ic("edit", "sm")}</button>
       <button class="icon-btn del" data-del-game="${g.id}" title="Remove">${ic("delete", "sm")}</button></li>`;
   }).join("") || `<li class="empty">No games yet</li>`;
@@ -549,7 +572,11 @@ function openPlayerEditor(id) {
 function drawPlayerEditor() {
   const d = editing.draft;
   $("#e-body").innerHTML = `
-    <div class="editor-preview"><span class="avatar xl">${headSvg(d.color, d.face)}</span></div>
+    <div class="editor-preview"><span class="avatar xl">${pic(d)}</span>
+      <div class="photo-actions">
+        <label class="btn btn-blue btn-sm">${d.photo ? "Change photo" : "Upload photo"}<input type="file" id="e-photo" accept="image/*" hidden /></label>
+        ${d.photo ? `<button type="button" class="btn btn-ghost btn-sm" id="e-photo-remove">Use cartoon head</button>` : ""}
+      </div></div>
     <label>Name<input id="e-name" maxlength="24" value="${esc(d.name)}" placeholder="Player name" /></label>
     <div class="field-label">Colour</div>
     <div class="swatches">${PALETTE.map((c) => `<button type="button" class="swatch ${d.color === c ? "on" : ""}" style="--c:${c}" data-pick-color="${c}"></button>`).join("")}
@@ -558,6 +585,11 @@ function drawPlayerEditor() {
     <div class="faces">${Object.entries(FACES).map(([k, n]) => `<button type="button" class="face-opt ${d.face === k ? "on" : ""}" data-pick-face="${k}"><span class="avatar sm">${headSvg(d.color, k)}</span>${n}</button>`).join("")}</div>`;
   $("#e-name").addEventListener("input", (e) => (d.name = e.target.value));
   $("#e-color").addEventListener("input", (e) => { d.color = e.target.value; drawPlayerEditor(); });
+  $("#e-photo").addEventListener("change", async (e) => {
+    const f = e.target.files[0]; if (!f) return;
+    try { d.photo = await photoFromFile(f); drawPlayerEditor(); } catch (err) { $("#e-error").textContent = err.message; }
+  });
+  $("#e-photo-remove") && ($("#e-photo-remove").onclick = () => { d.photo = null; drawPlayerEditor(); });
 }
 function openGameEditor(id) {
   const g = id ? byId(state.games, id) : null;
@@ -622,13 +654,12 @@ function openProfile(pid) {
 /* ---------------- Match modal ---------------- */
 let mm = null; // {editId, gameId ('__new' for new game), players:Set, winner, ngIcon}
 function openMatchModal(editId) {
-  if (state.players.length < 2) { alert("Add at least 2 players first (Manage → Add player)."); showView("manage"); return; }
   const m = editId ? byId(state.matches, editId) : null;
   mm = {
     editId, gameId: m ? m.gameId : (filter !== "all" ? filter : state.games[0]?.id || "__new"),
     players: new Set(m ? m.players : []), winner: m ? m.winnerId : null, ngIcon: GAME_ICONS[state.games.length % GAME_ICONS.length],
   };
-  $("#m-title").textContent = m ? "Edit match" : "Record a match";
+  $("#m-title").textContent = m ? "Edit match" : "Add a match";
   $("#m-date").value = m ? m.date : today();
   $("#m-ng-name").value = "";
   $("#m-error").textContent = "";
@@ -642,7 +673,17 @@ function drawMatchModal() {
   $("#m-newgame").hidden = mm.gameId !== "__new";
   $("#m-ng-icons").innerHTML = iconGrid(mm.ngIcon);
   $("#m-players").innerHTML = state.players.map((p) =>
-    `<button type="button" class="pick ${mm.players.has(p.id) ? "on" : ""}" data-pick="${p.id}">${avatar(p, "sm")}${esc(p.name)}</button>`).join("");
+    `<button type="button" class="pick ${mm.players.has(p.id) ? "on" : ""}" data-pick="${p.id}">${avatar(p, "sm")}${esc(p.name)}</button>`).join("") +
+    `<span class="pick add-player"><span class="plus">+</span><input id="m-np" maxlength="24" placeholder="New player" aria-label="New player name" /><button type="button" class="btn btn-blue btn-sm" id="m-np-add">Add</button></span>`;
+  const addNew = () => {
+    const name = $("#m-np").value.trim(); if (!name) return $("#m-np").focus();
+    const existing = state.players.find((x) => x.name.toLowerCase() === name.toLowerCase());
+    let id = existing && existing.id;
+    if (!id) { if (state.demo) { clearDemoIfNeeded(); mm.players.clear(); mm.winner = null; } id = uid(); state.players.push({ id, name, color: PALETTE[state.players.length % PALETTE.length], face: "smile", photo: null }); save(); }
+    mm.players.add(id); drawMatchModal(); $("#m-error").textContent = "";
+  };
+  $("#m-np-add").onclick = addNew;
+  $("#m-np").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); addNew(); } });
   const ps = state.players.filter((p) => mm.players.has(p.id));
   $("#m-winner").innerHTML = ps.length ? ps.map((p) =>
     `<button type="button" class="pick win ${mm.winner === p.id ? "on" : ""}" data-win="${p.id}">${avatar(p, "sm")}${esc(p.name)}${mm.winner === p.id ? ic("crown", "xs") : ""}</button>`).join("")
