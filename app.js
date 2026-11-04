@@ -228,11 +228,11 @@ function showLock(mode) {
   if (!showLock.bound) { showLock.bound = true; window.addEventListener("resize", () => { if (!$("#lock").hidden) art(); }); }
   if (mode === "name") {
     body.innerHTML = `
-      <div class="lock-hello"><h2>Hello! Welcome aboard</h2><p>We're glad to see you ${ic("heart", "sm")}</p></div>
+      <div class="lock-hello"><h2>Hello Noobs!</h2><p>Here to see your worth :D! ${ic("heart", "sm")}</p></div>
       <div class="lock-field"><label for="lock-name">Your name</label>
-        <input id="lock-name" class="pill-input" maxlength="24" placeholder="e.g. Ahmad" value="${esc(editorName())}" autocomplete="nickname" /></div>
+        <input id="lock-name" class="pill-input" maxlength="24" placeholder="e.g. Haretz BITCH" value="${esc(editorName())}" autocomplete="nickname" /></div>
       <p class="lock-note">Your name appears in the change log next to anything you add or edit.</p>
-      <label class="lock-check"><input type="checkbox" id="lock-fair" checked /><span></span>I promise to record every win honestly</label>
+      <label class="lock-check"><input type="checkbox" id="lock-fair" checked /><span></span>I promise to record every win honestly, else im a retard</label>
       <button class="pill-btn primary" id="lock-go">Let's play ${ic("controller", "sm")}</button>`;
     const go = () => { const n = $("#lock-name").value.trim(); if (!n) return $("#lock-name").focus(); lsSet("cnc-editor", n); location.reload(); };
     $("#lock-go").onclick = go;
