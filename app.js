@@ -185,8 +185,8 @@ async function initCloud() {
 function setSync(status, error = "") {
   cloud.status = status; cloud.error = error;
   const label = { local: "Saved in this browser", syncing: "Saving…", live: "Live · synced", error: "Sync problem" }[status];
-  $("#sync-pill").className = "sync-pill " + status;
-  $("#sync-pill").innerHTML = `<i></i>${label}`;
+  const pill = $("#sync-pill"); // optional
+  if (pill) { pill.className = "sync-pill " + status; pill.innerHTML = `<i></i>${label}`; }
   renderCloudBox();
 }
 function renderCloudBox() {
