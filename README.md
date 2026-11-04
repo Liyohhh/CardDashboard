@@ -14,7 +14,7 @@ Record who played and who won, and the dashboard works out the champion, win rat
 - **Stats, ranking and game champions:** win rates, streaks, most played game, and the best player for each game.
 - **Match history:** grouped by date, with filters for game, player and date range; edit or delete any match.
 - **Quick match entry:** pick a game (or create one on the spot), set the date, tap who played and who won, add a new player inline.
-- **Profile pictures:** every player picks a Mario character, a colour, or uploads a photo (their character then shows as a small badge).
+- **Profile pictures:** every player picks one of 12 Mario Kart characters and a colour, or uploads a photo.
 - **Shared and live:** stored in Supabase, so everyone sees the same scores on any device, instantly.
 - **Change log** (owner only) and **daily backups** kept for 30 days.
 - **Animated cave:** Mario runs through, grabs coins, bumps the ? block and stomps a Goomba (still for people who prefer reduced motion).
@@ -62,7 +62,7 @@ by the database's Row Level Security rules in `supabase-setup.sql`. The change l
 
 ## Credits
 
-- Super Mario Bros. sprites via [JuniorTour/es6-mario](https://github.com/JuniorTour/es6-mario). Super Mario Bros., its characters and graphics
+- Super Mario Bros. sprites via [JuniorTour/es6-mario](https://github.com/JuniorTour/es6-mario); Mario Kart DS character portraits via [Mario Universe](https://www.mariouniverse.com/sprites-ds-mk/) (ripped by Giraatacos). Super Mario Bros., Mario Kart, their characters and graphics
   are © Nintendo. This is a private, non-commercial fan project and is not affiliated with Nintendo.
 - Game icons: [Streamline](https://www.streamlinehq.com) "Core" flat icons (CC BY 4.0), recoloured.
 - Fonts: [Press Start 2P](https://fonts.google.com/specimen/Press+Start+2P) and [Darumadrop One](https://fonts.google.com/specimen/Darumadrop+One) (SIL Open Font License).

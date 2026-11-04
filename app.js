@@ -1,7 +1,10 @@
 /* Card War: scoreboard logic. Data syncs to Supabase (see config.js); ?demo shows sample data. */
 const KEY = "card-champions-v1";
 const PALETTE = ["#e0412e", "#2f6fd0", "#4e9a3a", "#f4b81c", "#8a5bb8", "#f05a28", "#14c3b0", "#ff5c8a", "#444444"];
-const CHARS = ["mario", "luigi", "peach", "toad", "goomba", "koopa", "lakitu", "bowser", "blooper", "piranha", "spiny"];
+const CHARS = ["mario", "luigi", "peach", "yoshi", "toad", "dk", "wario", "bowser", "daisy", "drybones", "waluigi", "rob"];
+const CHAR_NAMES = { mario: "Mario", luigi: "Luigi", peach: "Peach", yoshi: "Yoshi", toad: "Toad", dk: "Donkey Kong", wario: "Wario", bowser: "Bowser", daisy: "Daisy", drybones: "Dry Bones", waluigi: "Waluigi", rob: "R.O.B." };
+// characters from the earlier version, mapped to the closest new one
+const CHAR_ALIAS = { koopa: "yoshi", goomba: "dk", lakitu: "drybones", blooper: "rob", piranha: "yoshi", spiny: "bowser" };
 
 
 const uid = () => Math.random().toString(36).slice(2, 10);
@@ -15,11 +18,11 @@ const iconSvg = (name) => ICONS[name] || ICONS[ICON_ALIAS[name]] || ICONS.cards;
 const ic = (name, cls = "") => `<i class="ic ${cls}">${uniq(iconSvg(name))}</i>`;
 
 /* ---------------- Profile icon: Mario character (default) or photo ---------------- */
-const charOf = (p) => (CHARS.includes(p.char) ? p.char : CHARS[[...String(p.id || p.name)].reduce((a, c) => a + c.charCodeAt(0), 0) % 4]);
+const charOf = (p) => (CHARS.includes(p.char) ? p.char : CHAR_ALIAS[p.char] || CHARS[[...String(p.id || p.name)].reduce((a, c) => a + c.charCodeAt(0), 0) % 4]);
 const spr = (name) => `sprites/${name}.png`;
+const head = (c) => `sprites/chars/${c}.png`;
 const avatar = (p, size = "md", cls = "") => `<span class="pi pi-${size} ${cls}" style="--c:${esc(p.color || "#2f6fd0")}">` +
-  (p.photo ? `<img class="ph" src="${esc(p.photo)}" alt="" /><span class="bd"><img src="${spr(charOf(p))}" alt="" /></span>`
-           : `<img class="ch" src="${spr(charOf(p))}" alt="" />`) + `</span>`;
+  (p.photo ? `<img class="ph" src="${esc(p.photo)}" alt="" />` : `<img class="ch" src="${head(charOf(p))}" alt="" />`) + `</span>`;
 
 // Shrink an uploaded image to a small square JPEG (data URL) so it fits in the database.
 function photoFromFile(file) {
@@ -302,7 +305,7 @@ function toast(msg) {
 
 function demoData() {
   const names = ["Ahmad", "Bella", "Chris", "Dina", "Evan", "Farah"];
-  const chars = ["mario", "peach", "luigi", "toad", "koopa", "lakitu"];
+  const chars = ["mario", "peach", "luigi", "toad", "yoshi", "daisy"];
   const cols = ["#2f6fd0", "#e0412e", "#4e9a3a", "#8a5bb8", "#f4b81c", "#14c3b0"];
   const players = names.map((name, i) => ({ id: uid(), name, color: cols[i], face: "smile", char: chars[i] }));
   const games = [["UNO", "cards"], ["Poker", "card-spade"], ["Big Two", "card-heart"], ["Blackjack", "card-diamond"]].map(([name, icon]) => ({ id: uid(), name, icon }));
@@ -548,8 +551,8 @@ function drawPlayerEditor() {
         ${d.photo ? `<button type="button" class="btn small ghost" id="e-photo-remove">USE CHARACTER</button>` : ""}
       </div></div>
     <label class="field-label" for="e-name">NAME</label><input id="e-name" maxlength="24" value="${esc(d.name)}" placeholder="Player name" />
-    <div class="field-label">CHARACTER ${d.photo ? `<span class="muted">shown as a badge on your photo</span>` : ""}</div>
-    <div class="chars">${CHARS.map((c) => `<button type="button" class="${d.char === c ? "on" : ""}" data-pick-char="${c}" title="${c}"><img src="${spr(c)}" alt="${c}" /></button>`).join("")}</div>
+    <div class="field-label">CHARACTER ${d.photo ? `<span class="muted">used when there's no photo</span>` : `<span class="muted">${CHAR_NAMES[d.char] || ""}</span>`}</div>
+    <div class="chars">${CHARS.map((c) => `<button type="button" class="${d.char === c ? "on" : ""}" data-pick-char="${c}" title="${CHAR_NAMES[c]}" aria-label="${CHAR_NAMES[c]}"><img src="${head(c)}" alt="" /></button>`).join("")}</div>
     <div class="field-label">COLOUR</div>
     <div class="swatches">${PALETTE.map((c) => `<button type="button" class="swatch ${d.color === c ? "on" : ""}" style="--c:${c}" data-pick-color="${c}" aria-label="colour ${c}"></button>`).join("")}
       <label class="swatch custom" title="Pick any colour"><input type="color" id="e-color" value="${d.color}" /></label></div>`;
